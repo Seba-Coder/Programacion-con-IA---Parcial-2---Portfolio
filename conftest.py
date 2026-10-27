@@ -65,3 +65,24 @@ def fijar_disposicion_barcos():
 def colocar_barcos():
     """Fixture que expone y ejecuta fijar_disposicion_barcos."""
     return fijar_disposicion_barcos
+
+
+@pytest.fixture
+def verificar_ollama():
+    """Fixture que saltea el test si el servicio de Ollama no responde."""
+    try:
+        import ollama
+        ollama.list()
+    except Exception as e:
+        pytest.skip(f"Ollama no responde o no está disponible: {e}")
+
+
+def pytest_runtest_setup(item):
+    """Saltea automáticamente tests con el marcador 'ollama' si el servicio no responde."""
+    if item.get_closest_marker("ollama"):
+        try:
+            import ollama
+            ollama.list()
+        except Exception as e:
+            pytest.skip(f"Ollama no responde o no está disponible: {e}")
+
