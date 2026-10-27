@@ -179,34 +179,25 @@ def decidir_disparo(ai_shots, ai_target_queue, board_size, rng=None) -> dict:
     }
 
 
-def disparar_a_jugador() -> str:
+def ejecutar_disparo_ia(x: int, y: int) -> str:
     """
-    Sin parámetros. Decide la coordenada automáticamente con lógica hunt-and-target.
-    Si hay celdas pendientes en la cola de persecución, dispara allí. Si no, elige al azar.
-    Agrega celdas adyacentes no probadas en caso de 'tocado'. Si lo hunde, vacía la cola.
+    Aplica un disparo de la IA en la casilla indicada (x, y) contra el tablero del jugador.
+
+    Registra el disparo, actualiza impactos, modo y cola de persecución:
+    - En caso de 'tocado', agrega a la cola las 4 casillas adyacentes válidas no disparadas y pasa a modo 'persecucion'.
+    - En caso de 'hundido', vacía la cola y regresa a modo 'caza'.
+    - Quita de la cola la casilla disparada y todas las casillas ya disparadas.
+
+    Devuelve un mensaje con el resultado: agua, tocado o hundido.
     """
-    try:
-        decision = decidir_disparo(
-            ai_shots=game_state.ai_shots,
-            ai_target_queue=game_state.ai_target_queue,
-            board_size=BOARD_SIZE
-        )
-    except ValueError:
-        return "La IA no tiene casillas disponibles para disparar."
-
-    target = (decision["x"], decision["y"])
-
-    if decision["modo"] == "caza":
-        game_state.ai_mode = "caza"
-        game_state.ai_target_queue.clear()
-    else:
-        while game_state.ai_target_queue:
-            candidate = game_state.ai_target_queue.pop(0)
-            if candidate == target:
-                break
-
-    x, y = target
+    target = (x, y)
     game_state.ai_shots.add(target)
+
+    # Quitar de la cola la casilla disparada y las ya disparadas
+    game_state.ai_target_queue = [
+        coord for coord in game_state.ai_target_queue
+        if coord != target and coord not in game_state.ai_shots
+    ]
 
     # Evaluar disparo en el tablero del jugador
     if target in game_state.player_ship_coords:
@@ -234,7 +225,31 @@ def disparar_a_jugador() -> str:
                                 game_state.ai_target_queue.append(adj)
                     return f"La IA disparó en ({x}, {y}): TOCADO."
 
+    # Si es agua, actualizar modo según si quedan objetivos pendientes en la cola
+    if not game_state.ai_target_queue:
+        game_state.ai_mode = "caza"
+    else:
+        game_state.ai_mode = "persecucion"
+
     return f"La IA disparó en ({x}, {y}): AGUA."
+
+
+def disparar_a_jugador() -> str:
+    """
+    Sin parámetros. Decide automáticamente la coordenada con lógica hunt-and-target
+    y ejecuta el disparo contra el tablero del jugador.
+    Combina decidir_disparo y ejecutar_disparo_ia.
+    """
+    try:
+        decision = decidir_disparo(
+            ai_shots=game_state.ai_shots,
+            ai_target_queue=game_state.ai_target_queue,
+            board_size=BOARD_SIZE
+        )
+    except ValueError:
+        return "La IA no tiene casillas disponibles para disparar."
+
+    return ejecutar_disparo_ia(decision["x"], decision["y"])
 
 
 def obtener_estado_partida() -> Dict:
