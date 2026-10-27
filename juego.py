@@ -96,11 +96,24 @@ def iniciar_partida() -> str:
     return "Nueva partida iniciada. Ambos tableros fueron generados y el estado fue reseteado."
 
 
+def partida_terminada() -> bool:
+    """
+    Indica si la partida ha finalizado porque algún jugador hundió todos los barcos del rival.
+    Devuelve True si el jugador o la IA ganaron, False en caso contrario.
+    """
+    player_won = game_state.ai_ship_coords.issubset(game_state.player_hits)
+    ai_won = game_state.player_ship_coords.issubset(game_state.ai_hits)
+    return player_won or ai_won
+
+
 def disparar_a_ia(x: int, y: int) -> str:
     """
     Recibe las coordenadas (x, y) donde el jugador desea disparar contra la IA.
     Valida las coordenadas, revisa si impacta y devuelve 'agua', 'tocado' o 'hundido'.
     """
+    if partida_terminada():
+        return "Error: la partida ya terminó. Iniciá una nueva con iniciar_partida."
+
     if not (0 <= x < BOARD_SIZE and 0 <= y < BOARD_SIZE):
         return f"Error: Coordenadas ({x}, {y}) fuera de rango (0 a 5)."
 
@@ -190,6 +203,9 @@ def ejecutar_disparo_ia(x: int, y: int) -> str:
 
     Devuelve un mensaje con el resultado: agua, tocado o hundido.
     """
+    if partida_terminada():
+        return "Error: la partida ya terminó. Iniciá una nueva con iniciar_partida."
+
     target = (x, y)
     game_state.ai_shots.add(target)
 
@@ -240,6 +256,9 @@ def disparar_a_jugador() -> str:
     y ejecuta el disparo contra el tablero del jugador.
     Combina decidir_disparo y ejecutar_disparo_ia.
     """
+    if partida_terminada():
+        return "Error: la partida ya terminó. Iniciá una nueva con iniciar_partida."
+
     try:
         decision = decidir_disparo(
             ai_shots=game_state.ai_shots,
@@ -262,14 +281,14 @@ def obtener_estado_partida() -> Dict:
         row = []
         for x in range(BOARD_SIZE):
             coord = (x, y)
-            if coord in game_state.player_hits:
-                row.append("X")  # Tocado / Hundido
-            elif coord in game_state.player_shots:
-                row.append("O")  # Agua
+            if coord in game_state.ai_hits:
+                row.append("X")  # Tocado / Hundido por la IA
+            elif coord in game_state.ai_shots:
+                row.append("O")  # Disparo de la IA al agua
             elif coord in game_state.player_ship_coords:
-                row.append("B")  # Barco visible
+                row.append("B")  # Barco del jugador sin disparar
             else:
-                row.append("~")  # Agua oculta
+                row.append("~")  # Agua sin disparar
         player_grid.append(" ".join(row))
 
     ai_grid = []
@@ -277,12 +296,12 @@ def obtener_estado_partida() -> Dict:
         row = []
         for x in range(BOARD_SIZE):
             coord = (x, y)
-            if coord in game_state.ai_hits:
-                row.append("X")  # Tocado / Hundido
+            if coord in game_state.player_hits:
+                row.append("X")  # Impacto del jugador sobre la IA
             elif coord in game_state.player_shots:
-                row.append("O")  # Agua
+                row.append("O")  # Disparo del jugador al agua
             else:
-                row.append("~")  # Oculto / Desconocido
+                row.append("~")  # Oculto / sin disparar
         ai_grid.append(" ".join(row))
 
     return {
@@ -329,9 +348,9 @@ def calcular_barcos_restantes(tablero: List[List[int]]) -> int:
             if celda in conteo_celdas:
                 conteo_celdas[celda] += 1
 
-    # Un barco sigue a flote si el número de casillas encontradas coincide con su tamaño total
+    # Un barco sigue a flote si le queda al menos 1 casilla sin destruir (conteo > 0)
     barcos_restantes = sum(
-        1 for tamaño in SHIP_SIZES if conteo_celdas[tamaño] == tamaño
+        1 for tamaño in SHIP_SIZES if conteo_celdas[tamaño] > 0
     )
 
     return barcos_restantes

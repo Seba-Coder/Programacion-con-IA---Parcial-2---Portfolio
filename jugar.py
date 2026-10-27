@@ -46,6 +46,18 @@ def main():
 
     # Bucle principal del juego
     while True:
+        # Mostrar tableros y leyenda al comienzo de cada turno del jugador
+        estado = juego.obtener_estado_partida()
+        print("\nTU TABLERO:")
+        for fila in estado["tablero_jugador"]:
+            print(fila)
+
+        print("\nTABLERO DE LA IA (descubierto):")
+        for fila in estado["tablero_ia_descubierto"]:
+            print(fila)
+
+        print(f"Leyenda: {estado['leyenda']}")
+
         # 1. Pedir disparo al jugador y validar entrada
         try:
             entrada = input("\nIngresá tu disparo (formato 'x y', ej. '2 3') o 'q' para salir: ").strip()
