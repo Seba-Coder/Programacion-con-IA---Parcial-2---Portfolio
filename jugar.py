@@ -1,5 +1,9 @@
 """
 Script de consola para jugar Batalla Naval contra la IA con narración del Capitán.
+
+Permite disputar una partida por turnos ingresando coordenadas con formato 'x y'
+donde (x, y) = (columna, fila) de 0 a 5. El Capitán narra cada disparo de la IA
+usando un modelo local a través de Ollama.
 """
 
 import sys
@@ -12,6 +16,15 @@ import agente
 
 
 def parse_args():
+    """
+    Parsea los argumentos de línea de comandos para la ejecución de la partida.
+
+    Soporta la opción '--semilla' para fijar el generador de números aleatorios
+    y permitir partidas reproducibles.
+
+    Retorna:
+        argparse.Namespace: Objeto con los argumentos parseados (incluyendo 'semilla').
+    """
     parser = argparse.ArgumentParser(
         description="Jugar Batalla Naval contra la IA con narración del Capitán."
     )
@@ -25,6 +38,18 @@ def parse_args():
 
 
 def main():
+    """
+    Bucle principal interactivo de la partida de Batalla Naval en consola.
+
+    Inicializa el juego y carga el agente Capitán. En cada turno:
+    1. Muestra el estado visual de ambos tableros y la leyenda.
+    2. Solicita y valida las coordenadas de disparo del jugador en formato 'x y'
+       (columna, fila) o 'q' para salir.
+    3. Ejecuta el disparo del jugador contra la IA y comprueba si la partida terminó.
+    4. Solicita a la IA decidir su disparo, obtiene la narración en personaje del Capitán
+       y ejecuta el disparo contra el tablero del jugador.
+    5. Comprueba si la partida terminó tras el disparo de la IA.
+    """
     args = parse_args()
 
     # Fijar semilla opcional para reproducibilidad

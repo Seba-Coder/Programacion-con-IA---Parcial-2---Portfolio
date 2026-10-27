@@ -1,5 +1,8 @@
 """
 Servidor MCP para juego de Batalla Naval en Python usando FastMCP.
+
+Expone recursos y herramientas (tools) MCP para interactuar con la lógica del juego.
+Convención de coordenadas: (x, y) = (columna, fila) de 0 a 5.
 """
 
 from typing import Dict
@@ -12,7 +15,12 @@ mcp = FastMCP("Batalla Naval MCP")
 # --- MCP Resource ---
 @mcp.resource("battleship://reglas")
 def obtener_reglas() -> str:
-    """Devuelve las reglas oficiales de la partida de Batalla Naval MCP."""
+    """
+    Devuelve las reglas oficiales de la partida de Batalla Naval MCP.
+
+    Retorna:
+        str: Texto con el reglamento completo de la partida y formato de coordenadas.
+    """
     return (
         "=== REGLAS DE BATALLA NAVAL MCP ===\n"
         "- Tablero: Matriz de 6x6 (coordenadas x=0..5, y=0..5).\n"
@@ -28,15 +36,29 @@ def obtener_reglas() -> str:
 # --- MCP Tools ---
 @mcp.tool()
 def iniciar_partida() -> str:
-    """Genera ambos tableros al azar respetando las reglas de ubicación y resetea todo el estado."""
+    """
+    Inicia una nueva partida reseteando el estado y generando ambos tableros.
+
+    Retorna:
+        str: Mensaje de confirmación devuelto por la lógica del juego.
+    """
     return juego.iniciar_partida()
 
 
 @mcp.tool()
 def disparar_a_ia(x: int, y: int) -> str:
     """
-    Recibe las coordenadas (x, y) donde el jugador desea disparar contra la IA.
-    Valida las coordenadas, revisa si impacta y devuelve 'agua', 'tocado' o 'hundido'.
+    Ejecuta un disparo del jugador contra el tablero de la IA en la coordenada indicada.
+
+    Aplica la convención de coordenadas (x, y) = (columna, fila).
+
+    Parámetros:
+        x: Columna objetivo (0 a 5).
+        y: Fila objetivo (0 a 5).
+
+    Retorna:
+        str: Mensaje descriptivo con el resultado ('agua', 'tocado', 'hundido')
+             o mensaje de error si las coordenadas son inválidas, repetidas o la partida terminó.
     """
     return juego.disparar_a_ia(x, y)
 
@@ -44,9 +66,14 @@ def disparar_a_ia(x: int, y: int) -> str:
 @mcp.tool()
 def disparar_a_jugador() -> str:
     """
-    Sin parámetros. Decide la coordenada automáticamente con lógica hunt-and-target.
-    Si hay celdas pendientes en la cola de persecución, dispara allí. Si no, elige al azar.
-    Agrega celdas adyacentes no probadas en caso de 'tocado'. Si lo hunde, vacía la cola.
+    Decide automáticamente la coordenada con lógica hunt-and-target y ejecuta el disparo de la IA.
+
+    Si hay casillas en la cola de persecución, dispara allí; si no, elige al azar en modo caza.
+    En caso de 'tocado', agrega las adyacentes no probadas; si hunde el barco, vacía la cola.
+
+    Retorna:
+        str: Mensaje descriptivo con el resultado ('AGUA', 'TOCADO', 'HUNDIDO')
+             o mensaje de error si la partida terminó o no hay casillas disponibles.
     """
     return juego.disparar_a_jugador()
 
@@ -54,15 +81,28 @@ def disparar_a_jugador() -> str:
 @mcp.tool()
 def obtener_estado_partida() -> Dict:
     """
-    Devuelve la representación en caracteres/diccionario de ambos tableros.
-    El tablero del jugador se ve completo. De la IA solo se muestran los disparos e impactos descubiertos.
+    Devuelve la representación de ambos tableros y el estado interno de la IA.
+
+    Aplica la convención de coordenadas (x, y) = (columna, fila).
+    El tablero del jugador se ve completo con barcos e impactos; del tablero de la IA
+    solo se muestran las casillas disparadas y descubiertas.
+
+    Retorna:
+        Dict: Diccionario con las claves 'tablero_jugador', 'tablero_ia_descubierto',
+              'modo_ia', 'cola_persecucion_ia' y 'leyenda'.
     """
     return juego.obtener_estado_partida()
 
 
 @mcp.tool()
 def verificar_fin_juego() -> str:
-    """Verifica si algún jugador ya hundió todos los barcos del otro."""
+    """
+    Verifica si algún jugador ya hundió todos los barcos del otro.
+
+    Retorna:
+        str: Mensaje descriptivo indicando victoria del jugador, victoria de la IA,
+             empate o si la partida continúa.
+    """
     return juego.verificar_fin_juego()
 
 

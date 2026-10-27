@@ -6,7 +6,6 @@ y se conecta con Ollama para narrar en personaje los disparos decididos por la l
 
 import json
 import random
-from typing import Dict, Any, Optional
 import ollama
 
 import juego
@@ -31,6 +30,9 @@ def cargar_agente(ruta: str = RUTA_AGENTE) -> dict:
             - 'description': Descripción del agente.
             - 'model': Nombre del modelo LLM a utilizar.
             - 'system_prompt': Cuerpo Markdown que actúa como prompt de sistema.
+
+    Lanza:
+        ValueError: Si el archivo no contiene un frontmatter YAML válido delimitado por '---'.
     """
     with open(ruta, "r", encoding="utf-8") as f:
         contenido = f.read()
@@ -122,7 +124,12 @@ def responder_mensaje(texto: str, agente: dict) -> str:
 
 
 def main():
-    """Demostración del Agente Capitán narrando decisiones de disparo y respondiendo consultas."""
+    """
+    Punto de entrada para la demostración del Agente Capitán.
+
+    Ejecuta casos de prueba en consola narrando decisiones de disparo en modo
+    caza y persecución, y respondiendo una consulta temática fuera de combate.
+    """
     print("=== CARGANDO AGENTE CAPITÁN ===")
     agente = cargar_agente(RUTA_AGENTE)
     print(f"Nombre: {agente['name']}")
