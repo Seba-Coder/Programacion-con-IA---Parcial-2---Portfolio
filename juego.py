@@ -125,33 +125,85 @@ def disparar_a_ia(x: int, y: int) -> str:
     return f"Disparo en ({x}, {y}): AGUA."
 
 
+def decidir_disparo(ai_shots, ai_target_queue, board_size, rng=None) -> dict:
+    """
+    Decide el próximo disparo de la IA sin ejecutarlo y sin modificar sus argumentos.
+
+    Parámetros:
+        ai_shots: Colección o conjunto de coordenadas (x, y) ya disparadas por la IA.
+        ai_target_queue: Lista de coordenadas (x, y) pendientes en la cola de persecución.
+        board_size: Dimensión del tablero cuadrado (N x N).
+        rng: Instancia opcional de random.Random para decisiones deterministas. Si es None, usa random.
+
+    Retorna:
+        dict con el siguiente formato:
+        {
+            "x": int,
+            "y": int,
+            "modo": "caza" | "persecucion",
+            "motivo": str
+        }
+
+    Lanza:
+        ValueError: Si no quedan casillas disponibles en el tablero para disparar.
+    """
+    # 1. Modo persecución: buscar la primera casilla de la cola no disparada
+    for coord in ai_target_queue:
+        if coord not in ai_shots:
+            return {
+                "x": coord[0],
+                "y": coord[1],
+                "modo": "persecucion",
+                "motivo": "Objetivo pendiente en cola de persecución"
+            }
+
+    # 2. Modo caza: elegir al azar una casilla no disparada
+    untried = [
+        (x, y)
+        for x in range(board_size)
+        for y in range(board_size)
+        if (x, y) not in ai_shots
+    ]
+
+    if not untried:
+        raise ValueError("No quedan casillas disponibles para disparar.")
+
+    chooser = rng if rng is not None else random
+    chosen_x, chosen_y = chooser.choice(untried)
+
+    return {
+        "x": chosen_x,
+        "y": chosen_y,
+        "modo": "caza",
+        "motivo": "Disparo aleatorio en modo caza"
+    }
+
+
 def disparar_a_jugador() -> str:
     """
     Sin parámetros. Decide la coordenada automáticamente con lógica hunt-and-target.
     Si hay celdas pendientes en la cola de persecución, dispara allí. Si no, elige al azar.
     Agrega celdas adyacentes no probadas en caso de 'tocado'. Si lo hunde, vacía la cola.
     """
-    # Determinar siguiente objetivo
-    target: Optional[Tuple[int, int]] = None
+    try:
+        decision = decidir_disparo(
+            ai_shots=game_state.ai_shots,
+            ai_target_queue=game_state.ai_target_queue,
+            board_size=BOARD_SIZE
+        )
+    except ValueError:
+        return "La IA no tiene casillas disponibles para disparar."
 
-    while game_state.ai_target_queue:
-        candidate = game_state.ai_target_queue.pop(0)
-        if candidate not in game_state.ai_shots:
-            target = candidate
-            break
+    target = (decision["x"], decision["y"])
 
-    # Si no hay objetivos válidos en la cola, cambiar a modo caza
-    if target is None:
+    if decision["modo"] == "caza":
         game_state.ai_mode = "caza"
-        untried = [
-            (x, y)
-            for x in range(BOARD_SIZE)
-            for y in range(BOARD_SIZE)
-            if (x, y) not in game_state.ai_shots
-        ]
-        if not untried:
-            return "La IA no tiene casillas disponibles para disparar."
-        target = random.choice(untried)
+        game_state.ai_target_queue.clear()
+    else:
+        while game_state.ai_target_queue:
+            candidate = game_state.ai_target_queue.pop(0)
+            if candidate == target:
+                break
 
     x, y = target
     game_state.ai_shots.add(target)
